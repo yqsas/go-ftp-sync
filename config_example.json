@@ -1,0 +1,12 @@
+{
+  "IP": "127.0.0.1",
+  "Port": 21,
+  "Username": "admin",
+  "Password": "admin",
+  "ScanPath": "/test",
+  "ScanInterval": 10,
+  "Concurrency": 3,
+  "IgnoreReg": "[.](inprogress)$",
+  "UploadingFlag": ".inprogress",
+  "Delete": false
+}

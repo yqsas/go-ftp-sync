@@ -13,3 +13,13 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+config.json
+
+# Intellij
+.idea/**
+*.iml
+*.iws
+*.ipr
+*.ids
+*.orig
