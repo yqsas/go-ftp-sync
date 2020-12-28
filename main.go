@@ -1,14 +1,10 @@
 package main
 
 import (
-	_ "errors"
 	"fmt"
 	"github.com/jlaffaye/ftp"
-	"io/ioutil"
-	_ "io/ioutil"
 	"log"
 	"os"
-	"path"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -25,7 +21,7 @@ func main() {
 	config = initSyncConfig()
 
 	var wg sync.WaitGroup
-	//start scan oroutine
+	//start scan goroutine
 	fileChan := make(chan string, 10)
 	go fileScanner(fileChan)
 	//start store goroutine
@@ -49,26 +45,9 @@ func fileScanner(fileChan chan<- string) {
 	scanPath := config.ScanPath
 	ignoreReg := regexp.MustCompile(config.IgnoreReg)
 	for {
-		findFile(fileChan, &scanPath, ignoreReg)
-		//扫描间隔等待
+		FindFile(fileChan, &scanPath, ignoreReg)
+		//sleep
 		time.Sleep(time.Second * time.Duration(config.ScanInterval))
-	}
-}
-
-//find all file
-func findFile(fileChan chan<- string, dir *string, ignoreRegx *regexp.Regexp) {
-	files, _ := ioutil.ReadDir(*dir)
-	for _, f := range files {
-		filePath := *dir + "/" + f.Name()
-		if f.IsDir() {
-			findFile(fileChan, &filePath, ignoreRegx)
-			continue
-		}
-		if match := ignoreRegx.MatchString(filePath); match {
-			logMsg("ignore file: " + filePath)
-			continue
-		}
-		fileChan <- filePath
 	}
 }
 
@@ -92,55 +71,19 @@ func uploader(fileChan <-chan string) {
 		if _, loaded := handlingFiles.LoadOrStore(filePath, 0); loaded {
 			continue
 		}
-		if success := upload(ftpClient, &filePath, config); success && config.Delete {
+		if success := Upload(ftpClient, &filePath, config); success && config.Delete {
 			_ = os.Remove(filePath)
 		}
 		handlingFiles.Delete(filePath)
 	}
 }
 
-func upload(client *ftp.ServerConn, filePath *string, config *SyncConfig) bool {
-	logMsg("file upload start：" + *filePath)
-
-	if !Exists(*filePath) {
-		logMsg("file is not exists: ", *filePath)
-		return false
-	}
-	toSend, err := os.Open(*filePath)
-	if toSend != nil {
-		defer toSend.Close()
-	}
-	if err != nil {
-		logMsg("file open filed: ", err)
-		return false
-	}
-	filename := path.Base(*filePath)
-	parentDir := path.Dir(strings.TrimPrefix(*filePath, config.ScanPath))
-	if err := client.ChangeDir(parentDir); err != nil {
-		if err := Mkdir(client, parentDir); err != nil {
-			return false
-		}
-	}
-	//append file to ftp with uploadingFlag
-	err = client.Append(filename+config.UploadingFlag, toSend)
-
-	if err != nil {
-		logMsg("store file error: ", err)
-		return false
-	}
-	//rename file to origin name
-	if err = client.Rename(filename+config.UploadingFlag, filename); err != nil {
-		logMsg("rename file error:", err)
-		return false
-	}
-	logMsg("file upload success：" + *filePath)
-	return true
-}
-
+//log with goroutine id
 func logMsg(msg ...interface{}) {
 	log.Println(" ["+GetGoid()+"] ", msg)
 }
 
+//get go id
 func GetGoid() string {
 	var (
 		buf [64]byte

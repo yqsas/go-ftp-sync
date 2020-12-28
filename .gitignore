@@ -15,6 +15,7 @@
 # vendor/
 
 config.json
+go-ftp-sync
 
 # Intellij
 .idea/**

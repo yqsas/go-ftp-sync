@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/jlaffaye/ftp"
+	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -55,4 +57,42 @@ func Mkdir(client *ftp.ServerConn, dir string) error {
 		logMsg("FTP directory create sucess: " + newPath)
 		return nil
 	}
+}
+
+func Upload(client *ftp.ServerConn, filePath *string, config *SyncConfig) bool {
+	logMsg("file upload start：" + *filePath)
+
+	if !Exists(*filePath) {
+		logMsg("file is not exists: ", *filePath)
+		return false
+	}
+	toSend, err := os.Open(*filePath)
+	if toSend != nil {
+		defer toSend.Close()
+	}
+	if err != nil {
+		logMsg("file open filed: ", err)
+		return false
+	}
+	filename := path.Base(*filePath)
+	parentDir := path.Dir(strings.TrimPrefix(*filePath, config.ScanPath))
+	if err := client.ChangeDir(parentDir); err != nil {
+		if err := Mkdir(client, parentDir); err != nil {
+			return false
+		}
+	}
+	//append file to ftp with uploadingFlag
+	err = client.Append(filename+config.UploadingFlag, toSend)
+
+	if err != nil {
+		logMsg("store file error: ", err)
+		return false
+	}
+	//rename file to origin name
+	if err = client.Rename(filename+config.UploadingFlag, filename); err != nil {
+		logMsg("rename file error:", err)
+		return false
+	}
+	logMsg("file upload success：" + *filePath)
+	return true
 }

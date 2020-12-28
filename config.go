@@ -7,18 +7,19 @@ import (
 )
 
 type SyncConfig struct {
+	//FTP address
 	IP       string
 	Port     int
 	Username string
 	Password string
-	//目标路径
+	//target directory for scan
 	ScanPath     string
 	ScanInterval int
-	//并发数
+	//concurrency goroutine count
 	Concurrency int
-	//文件忽略规则
+	//regx for ignore some files
 	IgnoreReg string
-	//文件上传过程中的标识
+	//file uploading add the tag
 	UploadingFlag string
 	//delete local file after used
 	Delete bool
@@ -46,7 +47,7 @@ func initSyncConfig() *SyncConfig {
 		syncConfig.Load(configFilePath)
 		logMsg("load config file success")
 	} else {
-		logMsg("WARN: config file not found, if you want customized sync config, please create a config file in current directory")
+		logMsg("WARN: config file not found, if you want customized sync config, please create the config.json file in current directory")
 		//初始化配置
 		syncConfig = &SyncConfig{
 			IP:            "127.0.0.1",
